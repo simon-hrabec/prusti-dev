@@ -128,6 +128,26 @@ fn main() {
                 object_getter!(),
                 method!("apply"),
             ]),
+            java_class!("viper.silver.frontend.DefaultStates", vec![
+                method!("ConsistencyCheck"),
+            ]),
+            java_class!("viper.silver.logger.SilentLogger$", vec![
+                object_getter!(),
+                method!("apply"),
+            ]),
+            java_class!("viper.silver.logger.ViperLogger", vec![
+                method!("get"),
+            ]),
+            java_class!("viper.silicon.SiliconFrontend", vec![
+                constructor!("(Lviper/silver/reporter/Reporter;Lch/qos/logback/classic/Logger;)V"),
+                method!("setVerifier"),
+                method!("verification"),
+                method!("getVerificationResult"),
+                method!("setState"),
+                method!("verifier"),
+                field!("_program"),
+                field!("_verifier"),
+            ]),
             // Silicon
             java_class!("viper.silicon.Silicon", vec![
                 constructor!("(Lviper/silver/reporter/Reporter;Lscala/collection/immutable/Seq;)V"),
@@ -196,6 +216,9 @@ fn main() {
                 constructor!(),
             ]),
             java_class!("viper.silver.ast.Assert", vec![
+                constructor!(),
+            ]),
+            java_class!("viper.silver.plugin.standard.refute.Refute", vec![
                 constructor!(),
             ]),
             java_class!("viper.silver.ast.Bool$", vec![
