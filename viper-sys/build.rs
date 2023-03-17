@@ -148,6 +148,20 @@ fn main() {
                 field!("_program"),
                 field!("_verifier"),
             ]),
+            java_class!("viper.carbon.CarbonFrontend", vec![
+                constructor!("(Lviper/silver/reporter/Reporter;Lch/qos/logback/classic/Logger;)V"),
+                method!("setVerifier"),
+                method!("verification"),
+                method!("getVerificationResult"),
+                method!("setState"),
+                method!("verifier"),
+                field!("_program"),
+                field!("_verifier"),
+            ]),
+            // java_class!("viper.silver.frontend.DefaultFrontend", vec![
+            //     field!("_program"),
+            //     field!("_verifier"),
+            // ]),
             // Silicon
             java_class!("viper.silicon.Silicon", vec![
                 constructor!("(Lviper/silver/reporter/Reporter;Lscala/collection/immutable/Seq;)V"),

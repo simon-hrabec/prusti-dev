@@ -32,6 +32,17 @@ fn class_field_lookup<'a>(
     clazz: JClass<'a>,
     lookup_name: &str,
 ) -> Result<Option<JObject<'a>>> {
+
+    let classname = java_str_to_string(&env.get_string(env
+        .call_method(
+            clazz,
+            "getName",
+            "()Ljava/lang/String;",
+            &[],
+        )?
+        .l()?.into())?)?;
+
+    
     let fields = env
         .call_method(
             clazz,
@@ -41,7 +52,24 @@ fn class_field_lookup<'a>(
         )?
         .l()?;
 
+
+    println!("class_field_lookup - looking at class: {classname}");
+
     let num_fields = env.get_array_length(*fields)?;
+
+    for field_index in 0..num_fields {
+        let field = env.get_object_array_element(*fields, field_index)?;
+
+        let field_name = java_str_to_string(
+            &env.get_string(
+                env.call_method(field, "getName", "()Ljava/lang/String;", &[])?
+                    .l()?
+                    .into(),
+            )?,
+        )?;
+
+        println!("class_field_lookup - checking field: {field_name}");
+    }
 
     for field_index in 0..num_fields {
         let field = env.get_object_array_element(*fields, field_index)?;
