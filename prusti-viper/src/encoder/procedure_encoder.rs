@@ -133,6 +133,7 @@ pub struct ProcedureEncoder<'p, 'v: 'p, 'tcx: 'v> {
     /// Type substitutions inside this procedure. Most likely identity for the
     /// given proc_def_id.
     substs: SubstsRef<'tcx>,
+    reachibility_used_positions: FxHashSet<(i32, i32)>,
 }
 
 impl<'p, 'v: 'p, 'tcx: 'v> ProcedureEncoder<'p, 'v, 'tcx> {
@@ -192,6 +193,7 @@ impl<'p, 'v: 'p, 'tcx: 'v> ProcedureEncoder<'p, 'v, 'tcx> {
             old_ghost_vars: FxHashMap::default(),
             cached_loop_invariant_block: FxHashMap::default(),
             substs,
+            reachibility_used_positions: FxHashSet::default(),
         })
     }
 
@@ -1255,6 +1257,50 @@ impl<'p, 'v: 'p, 'tcx: 'v> ProcedureEncoder<'p, 'v, 'tcx> {
                 curr_block,
                 vir::Stmt::comment("This is a loop head"),
             );
+        }
+
+        if config::detect_unreachable_code() {
+            let bb_data = &self.mir.basic_blocks[bbi];
+            let statements: &Vec<mir::Statement<'tcx>> = &bb_data.statements;
+
+            let panic_free = match &bb_data.terminator().kind {
+                TerminatorKind::Unreachable => false,
+                TerminatorKind::Assert { .. } => false,
+                TerminatorKind::Call {
+                    func:
+                        mir::Operand::Constant(box mir::Constant {
+                            literal,
+                            ..
+                        }),
+                    ..
+                } => {
+                    if let ty::TyKind::FnDef(called_def_id, _call_substs) = literal.ty().kind() {
+                        let full_func_proc_name: &str =
+                            &self.encoder.env().name.get_absolute_item_name(*called_def_id);
+        
+                        !matches!(full_func_proc_name, "std::rt::begin_panic" | "core::panicking::panic" | "core::panicking::panic_fmt")
+                    } else {
+                        true
+                    }
+                }
+                _ => true,
+            };
+
+            if !statements.is_empty() && panic_free {
+                let location = mir::Location {
+                    block: bbi,
+                    statement_index: 0,
+                };
+                let span = self.mir_encoder.get_span_of_location(location);
+                let bb_pos_expr = self.mir_encoder.register_span(span);
+                if !self.reachibility_used_positions.contains(&(bb_pos_expr.line(), bb_pos_expr.column())) {
+                    self.reachibility_used_positions.insert((bb_pos_expr.line(), bb_pos_expr.column()));
+                    let bb_pos_stmt = self.register_error(span, ErrorCtxt::UnreachableCode);
+                    let refute_expr = vir::ast::Expr::Const(vir_crate::polymorphic::ConstExpr{value: vir_crate::polymorphic::Const::Bool(false), position: bb_pos_expr});
+                    let refute_stmt = vir::Stmt::Refute(vir::Refute {expr: refute_expr, position: bb_pos_stmt});
+                    self.cfg_method.add_stmt(curr_block, refute_stmt);
+                }
+            }
         }
 
         self.encode_execution_flag(bbi, curr_block)?;
